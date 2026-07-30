@@ -91,7 +91,11 @@ Resume_builder/
    PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-4. **Start the local development server**:
+4. **Candidate Profile Data (`src/assets/profile.json`)**:
+   - The repository includes a **sample demo candidate profile** located at `src/assets/profile.json` (`Alex Morgan - Full Stack & AI Engineer`).
+   - To build resumes using your own background, update `src/assets/profile.json` with your personal contact info, experience, projects, education, and skills.
+
+5. **Start the local development server**:
    ```bash
    npm run dev
    ```

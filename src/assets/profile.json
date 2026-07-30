@@ -1,158 +1,99 @@
 {
-  "name": "Yash Pal",
-  "title": "AI/ML Engineer",
-  "email": "2004yashpal@gmail.com",
-  "phone": "+91 9326259927",
-  "location": "Mumbai, India",
-  "portfolio": "yashpal.me",
-  "linkedin": "linkedin.com/in/yash-pal-since2004",
-  "github": "github.com/yashpalsince2004",
-  "summary": "AI/ML Engineer with a published research paper in Multimodal Conversational AI and proven experience building production multi-agent systems. Designed and deployed MITRA-AI — a multi-LLM platform integrating 5 providers (Claude, GPT-4, Gemini, DeepSeek, Kimi K2) with intelligent NLP routing, async FastAPI backend, and MCP-based prompt orchestration. Skilled in Python, REST API design, and LLM inference pipelines. Actively expanding into RAG, vector databases, and Azure OpenAI for enterprise-grade deployments.",
+  "name": "Alex Morgan",
+  "title": "Full Stack & AI Engineer",
+  "email": "alex.morgan@example.com",
+  "phone": "+1 (555) 019-2834",
+  "location": "San Francisco, CA",
+  "portfolio": "alexmorgan.dev",
+  "linkedin": "linkedin.com/in/alex-morgan-demo",
+  "github": "github.com/alexm-demo",
+  "summary": "Full Stack & AI Engineer with 3+ years of hands-on experience building scalable web applications and integrating large language models. Specialized in React, TypeScript, Python, FastAPI, and cloud architecture (AWS/GCP). Proven track record of designing high-throughput microservices, optimizing database queries, and leading cross-functional teams to deliver production-grade SaaS products.",
   "skills": [
     "React",
     "TypeScript",
     "JavaScript",
     "Node.js",
     "Next.js",
-    "Dart",
-    "FastAPI",
-    "Astro",
     "Python",
-    "GraphQL",
+    "FastAPI",
     "REST APIs",
-    "Multi-Agent System Design",
-    "Reasoning & Planning Workflows",
-    "Tool-Use",
-    "MCP (Model Context Protocol)",
-    "Prompt Engineering",
-    "NLP Routing",
-    "OpenAI API",
-    "Claude API",
-    "Google Gemini API",
-    "DeepSeek API",
-    "Inference Pipelines",
-    "RAG Pipelines",
-    "TensorFlow",
-    "PyTorch",
-    "Flutter",
-    "LangChain",
-    "LangGraph",
+    "GraphQL",
     "Docker",
-    "Linux",
+    "Kubernetes",
     "AWS",
-    "Firebase",
-    "Cloud Firestore",
-    "Azure AI Foundry",
-    "Azure OpenAI",
-    "Vector DBs (pgVector/Milvus)"
+    "PostgreSQL",
+    "Redis",
+    "MongoDB",
+    "OpenAI API",
+    "LangChain",
+    "Vector DBs",
+    "CI/CD",
+    "Git",
+    "Tailwind CSS"
   ],
   "experience": [
     {
-      "title": "Automation Engineering Intern",
-      "company": "Xemi Private Limited",
-      "location": "Mumbai, India",
-      "startDate": "March 2026",
-      "endDate": "April 2026",
+      "title": "Software Engineering Intern",
+      "company": "TechCorp Innovations",
+      "location": "San Francisco, CA",
+      "startDate": "June 2024",
+      "endDate": "August 2024",
       "bullets": [
-        "Developed Python scripts to automate testing workflows, reducing manual regression effort and improving system reliability.",
-        "Performed systematic bug identification, root-cause analysis, and diagnostic reporting.",
-        "Monitored application performance and contributed logging analysis and observability insights to the QA pipeline.",
-        "Collaborated cross-functionally and maintained technical documentation."
+        "Architected scalable backend microservices using Python and FastAPI, reducing API response latency by 35%.",
+        "Engineered responsive React/TypeScript UI dashboards integrated with real-time WebSocket data feeds.",
+        "Containerized applications using Docker and configured CI/CD deployment pipelines on AWS ECS.",
+        "Collaborated with senior engineers to implement automated testing suites, maintaining 90%+ code coverage."
       ]
     }
   ],
   "projects": [
     {
-      "name": "MITRA-AI — Multi-Agent Agentic AI Platform",
-      "link": "github.com/MITRA0616/Application",
-      "url": "https://github.com/MITRA0616/Application.git",
-      "description": "Built a production-grade agentic AI platform integrating 5 LLM providers (Claude, GPT-4, Gemini, DeepSeek, Kimi K2) with NLP routing, FastAPI backend, MCP prompt orchestration, and AWS deployment.",
-      "technologies": ["Python", "FastAPI", "Flutter/Dart", "OpenAI API", "Claude API", "Gemini API", "DeepSeek API", "REST APIs", "MCP", "AWS", "Git"]
+      "name": "CloudPulse — AI-Powered Analytics Platform",
+      "link": "github.com/alexm-demo/cloudpulse",
+      "url": "https://github.com/alexm-demo/cloudpulse",
+      "description": "Built a cloud monitoring platform leveraging LLMs for automated anomaly detection and root-cause analysis.",
+      "technologies": ["Python", "FastAPI", "React", "TypeScript", "OpenAI API", "PostgreSQL", "AWS", "Docker"]
     },
     {
-      "name": "Generative Adversarial Networks (GANs) — Autonomous Training Pipeline",
-      "link": "github.com/yashpalsince2004/Generative-Adversarial-Networks-GANs-with-TensorFlow",
-      "url": "https://github.com/yashpalsince2004/Generative-Adversarial-Networks-GANs-with-TensorFlow.git",
-      "description": "Designed an autonomous adversarial training pipeline where Generator and Discriminator agents iteratively reason and adapt using custom training loops.",
-      "technologies": ["TensorFlow", "Python", "Jupyter Notebook"]
-    },
-    {
-      "name": "SRCNN Super-Resolution — End-to-End AI Inference Pipeline",
-      "link": "github.com/yashpalsince2004/Image-Super-Resolution",
-      "url": "https://github.com/yashpalsince2004/Image-Super-Resolution.git",
-      "description": "Built an AI inference pipeline for image super-resolution covering data ingestion, preprocessing, feature extraction, and PSNR evaluation.",
-      "technologies": ["TensorFlow", "Keras", "OpenCV", "Python"]
-    },
-    {
-      "name": "Book-My-Turf — Cloud-Native SaaS",
-      "link": "github.com/yashpalsince2004/BookMyTurf",
-      "url": "https://github.com/yashpalsince2004/BookMyTurf",
-      "description": "Developed a cloud-backed SaaS platform with real-time authentication, multi-entity bookings, and Firebase integration.",
-      "technologies": ["Flutter", "Firebase", "Dart", "REST APIs", "Cloud Firestore"]
+      "name": "FlowState — Collaborative Task Management SaaS",
+      "link": "github.com/alexm-demo/flowstate",
+      "url": "https://github.com/alexm-demo/flowstate",
+      "description": "Developed a real-time Kanban board SaaS with end-to-end user authentication and dynamic query caching.",
+      "technologies": ["React", "Node.js", "TypeScript", "MongoDB", "Redis", "Tailwind CSS"]
     }
   ],
   "education": [
     {
-      "institution": "University of Mumbai",
-      "degree": "Bachelor of Engineering in Computer Science",
-      "field": "Artificial Intelligence & Machine Learning",
-      "year": "Nov 2022 – May 2026",
-      "gpa": "7.5/10.0",
+      "institution": "California State University",
+      "degree": "Bachelor of Science in Computer Science",
+      "field": "Software Engineering",
+      "year": "2021 – 2025",
+      "gpa": "3.8/4.0",
       "coursework": [
+        "Data Structures & Algorithms",
+        "Distributed Systems",
+        "Database Systems",
         "Artificial Intelligence",
-        "Deep Learning",
-        "Machine Learning",
-        "Reinforcement Learning",
-        "Data Structures",
-        "Project Management"
+        "Web Application Development",
+        "Software Architecture"
       ]
     }
   ],
   "certifications": [
     {
-      "name": "Research Paper Published — Multimodal Conversational AI System",
+      "name": "AWS Certified Solutions Architect – Associate",
+      "issuer": "Amazon Web Services",
+      "url": "https://aws.amazon.com/certification/"
+    },
+    {
+      "name": "Meta Front-End Developer Professional Certificate",
+      "issuer": "Coursera / Meta",
+      "url": "https://coursera.org"
+    },
+    {
+      "name": "TensorFlow Developer Certificate",
       "issuer": "Google",
-      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7414010969787650048/"
-    },
-    {
-      "name": "AI Fluency: Framework and Foundations",
-      "issuer": "Anthropic",
-      "url": "https://verify.skilljar.com/c/6zn8pjg7mgnf"
-    },
-    {
-      "name": "Machine Learning Specialization",
-      "issuer": "DeepLearning.AI / Coursera",
-      "url": "https://coursera.org/share/7c631b414d238d7c53531711c3922fd9"
-    },
-    {
-      "name": "Generative AI Studio",
-      "issuer": "Google",
-      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7414010969787650048/"
-    },
-    {
-      "name": "Oracle Cloud Infrastructure AI Foundations",
-      "issuer": "Oracle",
-      "url": "https://catalog-education.oracle.com/ords/certview/sharebadge?id=102A86DBB5CB3A634F16414E9AD30200E7D923C620DF7334FE30D2ABDD79765F"
-    },
-    {
-      "name": "Career Essentials in Generative AI",
-      "issuer": "Microsoft & LinkedIn",
-      "url": "https://www.linkedin.com/learning/certificates/53e2843636e579ac995d686aeae500b2adeac04a2404a204551ae6d7ce66b0f5"
-    },
-    {
-      "name": "Career Essentials in GitHub Professional Certificate",
-      "issuer": "LinkedIn",
-      "url": "https://www.linkedin.com/learning/certificates/8f368e27cbaabc79c7e9a95c8b25e9aa22fd623198c66dd393b30c54a9ccb33d"
-    },
-    {
-      "name": "Microsoft Copilot: The Art of Prompt Writing",
-      "issuer": "LinkedIn",
-      "url": "https://www.linkedin.com/learning/certificates/b75be309f93e544e9b737e816eb76348f08d5853d4abbaa303dd93ab2ee05828"
-    },
-    {
-      "name": "AI For All",
-      "issuer": "Skill India",
-      "url": "https://www.linkedin.com/posts/yash-pal-since2004_skillindia-ugcPost-7463531615307317248-Eyai"
+      "url": "https://tensorflow.org"
     }
   ]
 }
