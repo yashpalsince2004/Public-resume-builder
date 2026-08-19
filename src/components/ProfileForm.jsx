@@ -1,10 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
+import { readTextFromFile, parseResumeWithGemini } from '../utils/resumeParser.js';
 
 /**
- * Profile Form Component
- *
- * Multi-section accordion form for entering resume data.
- * Supports JSON import/export and live validation.
+ * Profile Form Component — Strictly Aligned with DESIGN-apple.md
+ * Multi-card structured intake for candidate resume details with Drag & Drop auto-fill.
  */
 
 const EMPTY_EXPERIENCE = { title: '', company: '', location: '', startDate: '', endDate: '', bullets: [''] };
@@ -24,9 +23,19 @@ const DEFAULT_PROFILE = {
   achievements: [],
 };
 
+const normalizeProfile = (p) => ({
+  ...DEFAULT_PROFILE,
+  ...(p || {}),
+  skills: Array.isArray(p?.skills) ? p.skills : [],
+  experience: Array.isArray(p?.experience) ? p.experience : [],
+  projects: Array.isArray(p?.projects) ? p.projects : [],
+  education: Array.isArray(p?.education) ? p.education : [],
+  certifications: Array.isArray(p?.certifications) ? p.certifications : [],
+  achievements: Array.isArray(p?.achievements) ? p.achievements : [],
+});
+
 export default function ProfileForm({ initialProfile, onSubmit }) {
-  const [profile, setProfile] = useState(initialProfile || { ...DEFAULT_PROFILE });
-  const [expandedSections, setExpandedSections] = useState(new Set(['personal']));
+  const [profile, setProfile] = useState(() => normalizeProfile(initialProfile));
   const [skillInput, setSkillInput] = useState('');
   const [courseworkInput, setCourseworkInput] = useState('');
   const [achievementInput, setAchievementInput] = useState('');
@@ -34,109 +43,168 @@ export default function ProfileForm({ initialProfile, onSubmit }) {
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState('');
+  
+  // Dropzone / File extraction states
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseStatus, setParseStatus] = useState('');
+  const [parseError, setParseError] = useState('');
+  
   const fileInputRef = useRef(null);
 
-  // ── Section toggle ──────────────────────────────────────────────
-  const toggleSection = (section) => {
-    setExpandedSections(prev => {
-      const next = new Set(prev);
-      if (next.has(section)) next.delete(section); else next.add(section);
-      return next;
-    });
-  };
-
-  // ── Simple field updater ────────────────────────────────────────
   const updateField = useCallback((field, value) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // ── Skills ──────────────────────────────────────────────────────
+  // ── Drag & Drop Resume Handlers ──
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const processResumeFile = async (file) => {
+    if (!file) return;
+    setSelectedFile(file);
+    setIsParsing(true);
+    setParseError('');
+    setParseStatus(`✨ Extracting candidate profile from ${file.name}...`);
+
+    try {
+      const rawText = await readTextFromFile(file);
+      let parsed = null;
+      if (file.name.endsWith('.json')) {
+        try {
+          parsed = JSON.parse(rawText);
+        } catch {
+          parsed = await parseResumeWithGemini(rawText);
+        }
+      } else {
+        parsed = await parseResumeWithGemini(rawText);
+      }
+
+      if (parsed) {
+        setProfile(normalizeProfile(parsed));
+        setParseStatus(`✨ Extracted details from ${file.name}! All candidate input fields below have been auto-filled.`);
+        setTimeout(() => setParseStatus(''), 5000);
+      } else {
+        setParseError('Could not extract details from resume. Please check file format.');
+      }
+    } catch (err) {
+      console.error('Error processing resume file:', err);
+      setParseError('Failed to read resume file text.');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleDrop = useCallback(async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await processResumeFile(e.dataTransfer.files[0]);
+    }
+  }, []);
+
+  const handleFileChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      await processResumeFile(e.target.files[0]);
+    }
+  };
+
+  // ── Skills ──
   const addSkill = () => {
     const trimmed = skillInput.trim();
-    if (trimmed && !profile.skills.includes(trimmed)) {
-      updateField('skills', [...profile.skills, trimmed]);
+    if (trimmed && !(profile.skills || []).includes(trimmed)) {
+      updateField('skills', [...(profile.skills || []), trimmed]);
       setSkillInput('');
     }
   };
 
   const removeSkill = (skill) => {
-    updateField('skills', profile.skills.filter(s => s !== skill));
+    updateField('skills', (profile.skills || []).filter(s => s !== skill));
   };
 
-  // ── Experience ──────────────────────────────────────────────────
+  // ── Experience ──
   const addExperience = () => {
-    updateField('experience', [...profile.experience, { ...EMPTY_EXPERIENCE, bullets: [''] }]);
+    updateField('experience', [...(profile.experience || []), { ...EMPTY_EXPERIENCE, bullets: [''] }]);
   };
 
   const updateExperience = (index, field, value) => {
-    const updated = [...profile.experience];
+    const updated = [...(profile.experience || [])];
     updated[index] = { ...updated[index], [field]: value };
     setProfile(prev => ({ ...prev, experience: updated }));
   };
 
   const removeExperience = (index) => {
-    updateField('experience', profile.experience.filter((_, i) => i !== index));
+    updateField('experience', (profile.experience || []).filter((_, i) => i !== index));
   };
 
   const addBullet = (expIndex) => {
-    const updated = [...profile.experience];
+    const updated = [...(profile.experience || [])];
     updated[expIndex].bullets = [...(updated[expIndex].bullets || []), ''];
     setProfile(prev => ({ ...prev, experience: updated }));
   };
 
   const updateBullet = (expIndex, bulletIndex, value) => {
-    const updated = [...profile.experience];
-    updated[expIndex].bullets = [...updated[expIndex].bullets];
+    const updated = [...(profile.experience || [])];
+    updated[expIndex].bullets = [...(updated[expIndex].bullets || [])];
     updated[expIndex].bullets[bulletIndex] = value;
     setProfile(prev => ({ ...prev, experience: updated }));
   };
 
   const removeBullet = (expIndex, bulletIndex) => {
-    const updated = [...profile.experience];
-    updated[expIndex].bullets = updated[expIndex].bullets.filter((_, i) => i !== bulletIndex);
+    const updated = [...(profile.experience || [])];
+    updated[expIndex].bullets = (updated[expIndex].bullets || []).filter((_, i) => i !== bulletIndex);
     setProfile(prev => ({ ...prev, experience: updated }));
   };
 
-  // ── Projects ────────────────────────────────────────────────────
+  // ── Projects ──
   const addProject = () => {
-    updateField('projects', [...profile.projects, { ...EMPTY_PROJECT, technologies: [], highlights: [''] }]);
+    updateField('projects', [...(profile.projects || []), { ...EMPTY_PROJECT, technologies: [], highlights: [''] }]);
   };
 
   const updateProject = (index, field, value) => {
-    const updated = [...profile.projects];
+    const updated = [...(profile.projects || [])];
     updated[index] = { ...updated[index], [field]: value };
     setProfile(prev => ({ ...prev, projects: updated }));
   };
 
   const removeProject = (index) => {
-    updateField('projects', profile.projects.filter((_, i) => i !== index));
+    updateField('projects', (profile.projects || []).filter((_, i) => i !== index));
   };
 
   const addProjectHighlight = (projIndex) => {
-    const updated = [...profile.projects];
+    const updated = [...(profile.projects || [])];
     updated[projIndex].highlights = [...(updated[projIndex].highlights || []), ''];
     setProfile(prev => ({ ...prev, projects: updated }));
   };
 
   const updateProjectHighlight = (projIndex, hIndex, value) => {
-    const updated = [...profile.projects];
-    updated[projIndex].highlights = [...updated[projIndex].highlights];
+    const updated = [...(profile.projects || [])];
+    updated[projIndex].highlights = [...(updated[projIndex].highlights || [])];
     updated[projIndex].highlights[hIndex] = value;
     setProfile(prev => ({ ...prev, projects: updated }));
   };
 
   const removeProjectHighlight = (projIndex, hIndex) => {
-    const updated = [...profile.projects];
-    updated[projIndex].highlights = updated[projIndex].highlights.filter((_, i) => i !== hIndex);
+    const updated = [...(profile.projects || [])];
+    updated[projIndex].highlights = (updated[projIndex].highlights || []).filter((_, i) => i !== hIndex);
     setProfile(prev => ({ ...prev, projects: updated }));
   };
 
   const addTech = (projIndex) => {
     const trimmed = techInput.trim();
     if (trimmed) {
-      const updated = [...profile.projects];
-      if (!updated[projIndex].technologies.includes(trimmed)) {
-        updated[projIndex].technologies = [...updated[projIndex].technologies, trimmed];
+      const updated = [...(profile.projects || [])];
+      if (!(updated[projIndex].technologies || []).includes(trimmed)) {
+        updated[projIndex].technologies = [...(updated[projIndex].technologies || []), trimmed];
         setProfile(prev => ({ ...prev, projects: updated }));
       }
       setTechInput('');
@@ -144,31 +212,31 @@ export default function ProfileForm({ initialProfile, onSubmit }) {
   };
 
   const removeTech = (projIndex, tech) => {
-    const updated = [...profile.projects];
-    updated[projIndex].technologies = updated[projIndex].technologies.filter(t => t !== tech);
+    const updated = [...(profile.projects || [])];
+    updated[projIndex].technologies = (updated[projIndex].technologies || []).filter(t => t !== tech);
     setProfile(prev => ({ ...prev, projects: updated }));
   };
 
-  // ── Education ───────────────────────────────────────────────────
+  // ── Education ──
   const addEducation = () => {
-    updateField('education', [...profile.education, { ...EMPTY_EDUCATION, coursework: [] }]);
+    updateField('education', [...(profile.education || []), { ...EMPTY_EDUCATION, coursework: [] }]);
   };
 
   const updateEducation = (index, field, value) => {
-    const updated = [...profile.education];
+    const updated = [...(profile.education || [])];
     updated[index] = { ...updated[index], [field]: value };
     setProfile(prev => ({ ...prev, education: updated }));
   };
 
   const removeEducation = (index) => {
-    updateField('education', profile.education.filter((_, i) => i !== index));
+    updateField('education', (profile.education || []).filter((_, i) => i !== index));
   };
 
   const addCoursework = (eduIndex) => {
     const trimmed = courseworkInput.trim();
     if (trimmed) {
-      const updated = [...profile.education];
-      if (!updated[eduIndex].coursework.includes(trimmed)) {
+      const updated = [...(profile.education || [])];
+      if (!(updated[eduIndex].coursework || []).includes(trimmed)) {
         updated[eduIndex].coursework = [...(updated[eduIndex].coursework || []), trimmed];
         setProfile(prev => ({ ...prev, education: updated }));
       }
@@ -177,609 +245,1142 @@ export default function ProfileForm({ initialProfile, onSubmit }) {
   };
 
   const removeCoursework = (eduIndex, course) => {
-    const updated = [...profile.education];
-    updated[eduIndex].coursework = updated[eduIndex].coursework.filter(c => c !== course);
+    const updated = [...(profile.education || [])];
+    updated[eduIndex].coursework = (updated[eduIndex].coursework || []).filter(c => c !== course);
     setProfile(prev => ({ ...prev, education: updated }));
   };
 
-  // ── Certifications ──────────────────────────────────────────────
+  // ── Certifications ──
   const addCertification = () => {
-    updateField('certifications', [...profile.certifications, { ...EMPTY_CERTIFICATION }]);
+    updateField('certifications', [...(profile.certifications || []), { ...EMPTY_CERTIFICATION }]);
   };
 
   const updateCertification = (index, field, value) => {
-    const updated = [...profile.certifications];
+    const updated = [...(profile.certifications || [])];
     updated[index] = { ...updated[index], [field]: value };
     setProfile(prev => ({ ...prev, certifications: updated }));
   };
 
   const removeCertification = (index) => {
-    updateField('certifications', profile.certifications.filter((_, i) => i !== index));
+    updateField('certifications', (profile.certifications || []).filter((_, i) => i !== index));
   };
 
-  // ── Achievements ────────────────────────────────────────────────
+  // ── Achievements ──
   const addAchievement = () => {
     const trimmed = achievementInput.trim();
-    if (trimmed) {
-      updateField('achievements', [...profile.achievements, trimmed]);
+    if (trimmed && !(profile.achievements || []).includes(trimmed)) {
+      updateField('achievements', [...(profile.achievements || []), trimmed]);
       setAchievementInput('');
     }
   };
 
   const removeAchievement = (index) => {
-    updateField('achievements', profile.achievements.filter((_, i) => i !== index));
+    updateField('achievements', (profile.achievements || []).filter((_, i) => i !== index));
   };
 
-  // ── JSON Import/Export ──────────────────────────────────────────
-  const handleJsonImport = () => {
-    try {
-      const parsed = JSON.parse(jsonText);
-      setProfile({ ...DEFAULT_PROFILE, ...parsed });
-      setJsonImportOpen(false);
-      setJsonError('');
-      setJsonText('');
-      // Expand all sections
-      setExpandedSections(new Set(['personal', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications', 'achievements']));
-    } catch (e) {
-      setJsonError('Invalid JSON format. Please check and try again.');
-    }
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target.result);
-          setProfile({ ...DEFAULT_PROFILE, ...parsed });
-          setJsonImportOpen(false);
-          setExpandedSections(new Set(['personal', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications', 'achievements']));
-        } catch (e) {
-          setJsonError('Invalid JSON file.');
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleExportJson = () => {
-    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+  // ── JSON Import/Export ──
+  const handleExportJSON = () => {
+    const jsonStr = JSON.stringify(profile, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${profile.name || 'profile'}_resume_data.json`;
+    a.download = `${(profile.name || 'candidate_profile').replace(/\s+/g, '_')}_profile.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // ── Submit ──────────────────────────────────────────────────────
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(profile);
+  const handleImportJSONText = () => {
+    try {
+      setJsonError('');
+      const parsed = JSON.parse(jsonText);
+      setProfile(normalizeProfile(parsed));
+      setJsonImportOpen(false);
+      setJsonText('');
+    } catch (err) {
+      setJsonError('Invalid JSON format. Please check syntax.');
+    }
   };
 
-  // ── Section renderer ────────────────────────────────────────────
-  const SectionAccordion = ({ id, title, icon, children, count }) => (
-    <div className="accordion-section glass-card-static">
-      <button
-        type="button"
-        className="accordion-header"
-        onClick={() => toggleSection(id)}
-        aria-expanded={expandedSections.has(id)}
-      >
-        <span className="accordion-title">
-          <span className="accordion-icon">{icon}</span>
-          {title}
-          {count > 0 && <span className="accordion-count">{count}</span>}
-        </span>
-        <span className={`accordion-chevron ${expandedSections.has(id) ? 'open' : ''}`}>▾</span>
-      </button>
-      {expandedSections.has(id) && (
-        <div className="accordion-body">{children}</div>
-      )}
-    </div>
-  );
+  const handleSubmitForm = (e) => {
+    e.preventDefault();
+    if (onSubmit) {
+      onSubmit(profile);
+    }
+  };
 
   return (
-    <div className="profile-form-wrapper">
-      <div className="profile-header">
-        <h1 className="profile-title">Build Your Profile</h1>
-        <p className="profile-subtitle">Enter your details or import from JSON to get started.</p>
-        <div className="profile-actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setJsonImportOpen(!jsonImportOpen)}
-          >
-            📥 Import JSON
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={handleExportJson}
-          >
-            📤 Export JSON
-          </button>
+    <div className="apple-profile-form-container">
+      {/* Resume File Extraction Dropzone (Dropbox) */}
+      <div className="apple-form-card profile-dropzone-card">
+        <div className="card-section-header dropzone-header">
+          <div className="dropzone-title-area">
+            <span className="section-icon">📄</span>
+            <div>
+              <h3>Auto-Fill Profile From Existing Resume</h3>
+              <p className="dropzone-subtitle-header">
+                Drop your PDF or Word resume to automatically extract candidate details and auto-fill all form fields below.
+              </p>
+            </div>
+          </div>
+          <div className="dropzone-actions">
+            <button type="button" className="btn-apple-chip" onClick={() => setJsonImportOpen(!jsonImportOpen)}>
+              📥 Import JSON
+            </button>
+            <button type="button" className="btn-apple-chip" onClick={handleExportJSON}>
+              📤 Export JSON
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`profile-dropzone ${dragActive ? 'drag-over' : ''} ${selectedFile ? 'has-file' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
           <input
             type="file"
-            accept=".json"
             ref={fileInputRef}
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
+            className="file-input-hidden"
+            accept=".pdf,.docx,.txt,.json,.md"
+            onChange={handleFileChange}
           />
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            📂 Upload File
-          </button>
+
+          <div className="dropzone-content">
+            <div className="upload-icon-circle">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <span className="dropzone-main-text">
+              {selectedFile ? `Selected: ${selectedFile.name}` : 'Drag & drop your resume PDF or Word document here'}
+            </span>
+            <span className="dropzone-hint-text">Supports PDF, DOCX, TXT, JSON or Markdown</span>
+            <button
+              type="button"
+              className="btn-apple-primary btn-browse-files"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isParsing}
+            >
+              {isParsing ? '✨ Extracting Profile...' : 'Browse Resume Files'}
+            </button>
+          </div>
         </div>
+
+        {parseStatus && <div className="parse-status-banner">{parseStatus}</div>}
+        {parseError && <div className="parse-error-banner">{parseError}</div>}
       </div>
 
-      {/* JSON Import Panel */}
       {jsonImportOpen && (
-        <div className="json-import-panel glass-card animate-fade-in-up">
-          <h3>Paste your profile JSON</h3>
+        <div className="apple-form-card json-panel">
+          <h3>Paste Candidate JSON</h3>
           <textarea
-            className="form-textarea"
+            className="apple-textarea"
+            rows={5}
             value={jsonText}
-            onChange={(e) => { setJsonText(e.target.value); setJsonError(''); }}
-            placeholder='{"name": "John Doe", "email": "john@example.com", "skills": ["React", "Node.js"], ...}'
-            rows={8}
+            onChange={(e) => setJsonText(e.target.value)}
+            placeholder='{"name": "John Doe", "email": "john@example.com", ...}'
           />
-          {jsonError && <p className="form-error">{jsonError}</p>}
-          <div className="json-import-actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleJsonImport}>
-              Import
+          {jsonError && <div className="json-error-pill">{jsonError}</div>}
+          <div className="json-panel-actions">
+            <button type="button" className="btn-apple-primary btn-sm" onClick={handleImportJSONText}>
+              Apply JSON Profile
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setJsonImportOpen(false)}>
+            <button type="button" className="btn-apple-secondary btn-sm" onClick={() => setJsonImportOpen(false)}>
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* Personal Info */}
-        <SectionAccordion id="personal" title="Personal Information" icon="👤">
-          <div className="form-grid">
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-name">Full Name</label>
-              <input id="pf-name" className="form-input" value={profile.name} onChange={e => updateField('name', e.target.value)} placeholder="John Doe" autoComplete="name" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-title">Professional Title</label>
-              <input id="pf-title" className="form-input" value={profile.title || ''} onChange={e => updateField('title', e.target.value)} placeholder="Software Engineer" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-email">Email</label>
-              <input id="pf-email" className="form-input" type="email" value={profile.email} onChange={e => updateField('email', e.target.value)} placeholder="john@example.com" autoComplete="email" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-phone">Phone</label>
-              <input id="pf-phone" className="form-input" type="tel" value={profile.phone} onChange={e => updateField('phone', e.target.value)} placeholder="+1 (555) 000-0000" autoComplete="tel" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-location">Location</label>
-              <input id="pf-location" className="form-input" value={profile.location} onChange={e => updateField('location', e.target.value)} placeholder="San Francisco, CA" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-linkedin">LinkedIn</label>
-              <input id="pf-linkedin" className="form-input" value={profile.linkedin} onChange={e => updateField('linkedin', e.target.value)} placeholder="linkedin.com/in/johndoe" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-github">GitHub</label>
-              <input id="pf-github" className="form-input" value={profile.github} onChange={e => updateField('github', e.target.value)} placeholder="github.com/johndoe" />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="pf-portfolio">Portfolio</label>
-              <input id="pf-portfolio" className="form-input" value={profile.portfolio} onChange={e => updateField('portfolio', e.target.value)} placeholder="johndoe.dev" />
-            </div>
+      <form onSubmit={handleSubmitForm} className="apple-form-stack">
+        {/* Section 1: Personal Information */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">👤</span>
+            <h3>Personal Information</h3>
           </div>
-        </SectionAccordion>
 
-        {/* Summary */}
-        <SectionAccordion id="summary" title="Professional Summary" icon="📝">
-          <div className="form-group">
-            <label className="form-label" htmlFor="pf-summary">Summary</label>
-            <textarea id="pf-summary" className="form-textarea" value={profile.summary} onChange={e => updateField('summary', e.target.value)} placeholder="A brief professional summary highlighting your key strengths and career goals..." rows={4} />
-          </div>
-        </SectionAccordion>
-
-        {/* Skills */}
-        <SectionAccordion id="skills" title="Skills" icon="⚡" count={profile.skills.length}>
-          <div className="form-group">
-            <label className="form-label">Add Skills</label>
-            <div className="tag-input-wrapper">
+          <div className="form-grid-3">
+            <div className="apple-input-group">
+              <label className="apple-label">Full Name</label>
               <input
-                className="form-input"
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
-                placeholder="Type a skill and press Enter"
+                type="text"
+                className="apple-input"
+                placeholder="e.g. Alex Johnson"
+                value={profile.name || ''}
+                onChange={(e) => updateField('name', e.target.value)}
               />
-              <button type="button" className="btn btn-primary btn-sm" onClick={addSkill}>Add</button>
             </div>
-            <div className="tags-container">
-              {profile.skills.map((skill, i) => (
-                <span key={i} className="tag tag-primary">
+
+            <div className="apple-input-group">
+              <label className="apple-label">Professional Title</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="e.g. Senior Software Engineer"
+                value={profile.title || ''}
+                onChange={(e) => updateField('title', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group">
+              <label className="apple-label">Email Address</label>
+              <input
+                type="email"
+                className="apple-input"
+                placeholder="alex@example.com"
+                value={profile.email || ''}
+                onChange={(e) => updateField('email', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group">
+              <label className="apple-label">Phone Number</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="+1 (555) 000-0000"
+                value={profile.phone || ''}
+                onChange={(e) => updateField('phone', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group">
+              <label className="apple-label">Location</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="San Francisco, CA"
+                value={profile.location || ''}
+                onChange={(e) => updateField('location', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group">
+              <label className="apple-label">LinkedIn URL</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="linkedin.com/in/alexjohnson"
+                value={profile.linkedin || ''}
+                onChange={(e) => updateField('linkedin', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group">
+              <label className="apple-label">GitHub URL</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="github.com/alexjohnson"
+                value={profile.github || ''}
+                onChange={(e) => updateField('github', e.target.value)}
+              />
+            </div>
+
+            <div className="apple-input-group span-2">
+              <label className="apple-label">Portfolio / Website</label>
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="alexjohnson.dev"
+                value={profile.portfolio || ''}
+                onChange={(e) => updateField('portfolio', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Professional Summary */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">📝</span>
+            <h3>Professional Summary</h3>
+          </div>
+          <div className="apple-input-group">
+            <label className="apple-label">Summary Overview</label>
+            <textarea
+              className="apple-textarea"
+              rows={4}
+              placeholder="Highlight 3-4 key technical achievements, leadership background, and career accomplishments..."
+              value={profile.summary || ''}
+              onChange={(e) => updateField('summary', e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Section 3: Technical & Leadership Skills */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">⚡</span>
+            <h3>Skills & Technologies</h3>
+          </div>
+
+          <div className="apple-input-group">
+            <label className="apple-label">Add Key Skills</label>
+            <div className="tag-input-row">
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="Type skill (e.g. Python, React, AWS, Distributed Systems) and press Enter"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSkill();
+                  }
+                }}
+              />
+              <button type="button" className="btn-apple-secondary btn-input-action" onClick={addSkill}>
+                Add Skill
+              </button>
+            </div>
+
+            <div className="tags-flex-container">
+              {(profile.skills || []).map((skill, i) => (
+                <span key={i} className="apple-pill-tag">
                   {skill}
-                  <span className="tag-close" onClick={() => removeSkill(skill)}>×</span>
+                  <button type="button" className="tag-remove-btn" onClick={() => removeSkill(skill)}>
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
           </div>
-        </SectionAccordion>
+        </div>
 
-        {/* Experience */}
-        <SectionAccordion id="experience" title="Work Experience" icon="💼" count={profile.experience.length}>
-          {profile.experience.map((exp, i) => (
-            <div key={i} className="repeatable-item">
-              <div className="repeatable-header">
-                <span className="repeatable-number">#{i + 1}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeExperience(i)}>🗑 Remove</button>
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Job Title</label>
-                  <input className="form-input" value={exp.title} onChange={e => updateExperience(i, 'title', e.target.value)} placeholder="Software Engineer" />
+        {/* Section 4: Work Experience */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">💼</span>
+            <h3>Work Experience</h3>
+          </div>
+
+          <div className="repeatable-stack">
+            {(profile.experience || []).map((exp, i) => (
+              <div key={i} className="repeatable-card-item">
+                <div className="item-header">
+                  <span className="item-badge">Position #{i + 1}</span>
+                  <button type="button" className="btn-remove-item" onClick={() => removeExperience(i)}>
+                    🗑 Remove Position
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Company</label>
-                  <input className="form-input" value={exp.company} onChange={e => updateExperience(i, 'company', e.target.value)} placeholder="Google" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Location</label>
-                  <input className="form-input" value={exp.location} onChange={e => updateExperience(i, 'location', e.target.value)} placeholder="Mountain View, CA" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Start Date</label>
-                  <input className="form-input" value={exp.startDate} onChange={e => updateExperience(i, 'startDate', e.target.value)} placeholder="Jan 2022" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">End Date</label>
-                  <input className="form-input" value={exp.endDate} onChange={e => updateExperience(i, 'endDate', e.target.value)} placeholder="Present" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Bullet Points</label>
-                {(exp.bullets || []).map((bullet, bi) => (
-                  <div key={bi} className="bullet-row">
-                    <span className="bullet-dot">•</span>
-                    <input className="form-input bullet-input" value={bullet} onChange={e => updateBullet(i, bi, e.target.value)} placeholder="Describe an achievement or responsibility..." />
-                    <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => removeBullet(i, bi)}>×</button>
+
+                <div className="form-grid-2">
+                  <div className="apple-input-group">
+                    <label className="apple-label">Job Title</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Senior Software Engineer"
+                      value={exp.title || ''}
+                      onChange={(e) => updateExperience(i, 'title', e.target.value)}
+                    />
                   </div>
-                ))}
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => addBullet(i)}>+ Add Bullet</button>
-              </div>
-            </div>
-          ))}
-          <button type="button" className="btn btn-secondary w-full" onClick={addExperience}>+ Add Experience</button>
-        </SectionAccordion>
 
-        {/* Projects */}
-        <SectionAccordion id="projects" title="Projects" icon="🚀" count={profile.projects.length}>
-          {profile.projects.map((proj, i) => (
-            <div key={i} className="repeatable-item">
-              <div className="repeatable-header">
-                <span className="repeatable-number">#{i + 1}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeProject(i)}>🗑 Remove</button>
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Project Name</label>
-                  <input className="form-input" value={proj.name} onChange={e => updateProject(i, 'name', e.target.value)} placeholder="AI Chatbot" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Link</label>
-                  <input className="form-input" value={proj.link} onChange={e => updateProject(i, 'link', e.target.value)} placeholder="github.com/user/project" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea className="form-textarea" value={proj.description} onChange={e => updateProject(i, 'description', e.target.value)} placeholder="Brief description of the project..." rows={2} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Technologies</label>
-                <div className="tag-input-wrapper">
-                  <input className="form-input" value={techInput} onChange={e => setTechInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTech(i); } }} placeholder="React, Python, etc." />
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addTech(i)}>Add</button>
-                </div>
-                <div className="tags-container">
-                  {(proj.technologies || []).map((tech, ti) => (
-                    <span key={ti} className="tag tag-accent">
-                      {tech}
-                      <span className="tag-close" onClick={() => removeTech(i, tech)}>×</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Highlights</label>
-                {(proj.highlights || []).map((h, hi) => (
-                  <div key={hi} className="bullet-row">
-                    <span className="bullet-dot">•</span>
-                    <input className="form-input bullet-input" value={h} onChange={e => updateProjectHighlight(i, hi, e.target.value)} placeholder="Key achievement or feature..." />
-                    <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => removeProjectHighlight(i, hi)}>×</button>
+                  <div className="apple-input-group">
+                    <label className="apple-label">Company Name</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. TechCorp Solutions"
+                      value={exp.company || ''}
+                      onChange={(e) => updateExperience(i, 'company', e.target.value)}
+                    />
                   </div>
-                ))}
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => addProjectHighlight(i)}>+ Add Highlight</button>
-              </div>
-            </div>
-          ))}
-          <button type="button" className="btn btn-secondary w-full" onClick={addProject}>+ Add Project</button>
-        </SectionAccordion>
 
-        {/* Education */}
-        <SectionAccordion id="education" title="Education" icon="🎓" count={profile.education.length}>
-          {profile.education.map((edu, i) => (
-            <div key={i} className="repeatable-item">
-              <div className="repeatable-header">
-                <span className="repeatable-number">#{i + 1}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeEducation(i)}>🗑 Remove</button>
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Degree</label>
-                  <input className="form-input" value={edu.degree} onChange={e => updateEducation(i, 'degree', e.target.value)} placeholder="Bachelor of Science" />
+                  <div className="apple-input-group">
+                    <label className="apple-label">Location</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="San Francisco, CA / Remote"
+                      value={exp.location || ''}
+                      onChange={(e) => updateExperience(i, 'location', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-grid-2-inner">
+                    <div className="apple-input-group">
+                      <label className="apple-label">Start Date</label>
+                      <input
+                        type="text"
+                        className="apple-input"
+                        placeholder="Jan 2021"
+                        value={exp.startDate || ''}
+                        onChange={(e) => updateExperience(i, 'startDate', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="apple-input-group">
+                      <label className="apple-label">End Date</label>
+                      <input
+                        type="text"
+                        className="apple-input"
+                        placeholder="Present"
+                        value={exp.endDate || ''}
+                        onChange={(e) => updateExperience(i, 'endDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Field of Study</label>
-                  <input className="form-input" value={edu.field} onChange={e => updateEducation(i, 'field', e.target.value)} placeholder="Computer Science" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Institution</label>
-                  <input className="form-input" value={edu.institution} onChange={e => updateEducation(i, 'institution', e.target.value)} placeholder="MIT" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Year</label>
-                  <input className="form-input" value={edu.year} onChange={e => updateEducation(i, 'year', e.target.value)} placeholder="2024" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">GPA (optional)</label>
-                  <input className="form-input" value={edu.gpa} onChange={e => updateEducation(i, 'gpa', e.target.value)} placeholder="3.8/4.0" />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Relevant Coursework</label>
-                <div className="tag-input-wrapper">
-                  <input className="form-input" value={courseworkInput} onChange={e => setCourseworkInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCoursework(i); } }} placeholder="Data Structures, ML, etc." />
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addCoursework(i)}>Add</button>
-                </div>
-                <div className="tags-container">
-                  {(edu.coursework || []).map((c, ci) => (
-                    <span key={ci} className="tag tag-info">
-                      {c}
-                      <span className="tag-close" onClick={() => removeCoursework(i, c)}>×</span>
-                    </span>
+
+                <div className="bullets-section">
+                  <label className="apple-label">Key Achievements & Responsibilities (Action Verbs + Metrics)</label>
+                  {(exp.bullets || []).map((bullet, bi) => (
+                    <div key={bi} className="bullet-input-row">
+                      <span className="bullet-dot">•</span>
+                      <input
+                        type="text"
+                        className="apple-input bullet-input"
+                        placeholder="Architected microservices boosting throughput by 40%..."
+                        value={bullet}
+                        onChange={(e) => updateBullet(i, bi, e.target.value)}
+                      />
+                      <button type="button" className="btn-remove-bullet" onClick={() => removeBullet(i, bi)}>
+                        ✕
+                      </button>
+                    </div>
                   ))}
+                  <button type="button" className="btn-apple-secondary btn-add-bullet" onClick={() => addBullet(i)}>
+                    + Add Achievement Bullet
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-          <button type="button" className="btn btn-secondary w-full" onClick={addEducation}>+ Add Education</button>
-        </SectionAccordion>
+            ))}
 
-        {/* Certifications */}
-        <SectionAccordion id="certifications" title="Certifications" icon="🏅" count={profile.certifications.length}>
-          {profile.certifications.map((cert, i) => (
-            <div key={i} className="repeatable-item">
-              <div className="repeatable-header">
-                <span className="repeatable-number">#{i + 1}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeCertification(i)}>🗑 Remove</button>
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Name</label>
-                  <input className="form-input" value={cert.name} onChange={e => updateCertification(i, 'name', e.target.value)} placeholder="AWS Solutions Architect" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Issuer</label>
-                  <input className="form-input" value={cert.issuer} onChange={e => updateCertification(i, 'issuer', e.target.value)} placeholder="Amazon Web Services" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Date</label>
-                  <input className="form-input" value={cert.date} onChange={e => updateCertification(i, 'date', e.target.value)} placeholder="2024" />
-                </div>
-              </div>
-            </div>
-          ))}
-          <button type="button" className="btn btn-secondary w-full" onClick={addCertification}>+ Add Certification</button>
-        </SectionAccordion>
+            <button type="button" className="btn-apple-secondary btn-add-section" onClick={addExperience}>
+              + Add Work Experience Position
+            </button>
+          </div>
+        </div>
 
-        {/* Achievements */}
-        <SectionAccordion id="achievements" title="Achievements" icon="🏆" count={profile.achievements.length}>
-          <div className="form-group">
-            <div className="tag-input-wrapper">
-              <input className="form-input" value={achievementInput} onChange={e => setAchievementInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAchievement(); } }} placeholder="Describe an achievement..." />
-              <button type="button" className="btn btn-primary btn-sm" onClick={addAchievement}>Add</button>
+        {/* Section 5: Projects */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">🚀</span>
+            <h3>Key Projects</h3>
+          </div>
+
+          <div className="repeatable-stack">
+            {(profile.projects || []).map((proj, i) => (
+              <div key={i} className="repeatable-card-item">
+                <div className="item-header">
+                  <span className="item-badge">Project #{i + 1}</span>
+                  <button type="button" className="btn-remove-item" onClick={() => removeProject(i)}>
+                    🗑 Remove Project
+                  </button>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="apple-input-group">
+                    <label className="apple-label">Project Name</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Distributed Analytics Engine"
+                      value={proj.name || ''}
+                      onChange={(e) => updateProject(i, 'name', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="apple-input-group">
+                    <label className="apple-label">Project Link</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="github.com/user/analytics-engine"
+                      value={proj.link || ''}
+                      onChange={(e) => updateProject(i, 'link', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="apple-input-group margin-top-sm">
+                  <label className="apple-label">Project Description</label>
+                  <textarea
+                    className="apple-textarea"
+                    rows={2}
+                    placeholder="Short summary of project scope and business value..."
+                    value={proj.description || ''}
+                    onChange={(e) => updateProject(i, 'description', e.target.value)}
+                  />
+                </div>
+
+                <div className="apple-input-group margin-top-sm">
+                  <label className="apple-label">Technologies Used</label>
+                  <div className="tag-input-row">
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Go, Docker, PostgreSQL"
+                      value={techInput}
+                      onChange={(e) => setTechInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addTech(i);
+                        }
+                      }}
+                    />
+                    <button type="button" className="btn-apple-secondary btn-input-action" onClick={() => addTech(i)}>
+                      Add Tech
+                    </button>
+                  </div>
+                  <div className="tags-flex-container">
+                    {(proj.technologies || []).map((t, ti) => (
+                      <span key={ti} className="apple-pill-tag tag-tech">
+                        {t}
+                        <button type="button" className="tag-remove-btn" onClick={() => removeTech(i, t)}>
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bullets-section margin-top-sm">
+                  <label className="apple-label">Highlight Bullets</label>
+                  {(proj.highlights || []).map((h, hi) => (
+                    <div key={hi} className="bullet-input-row">
+                      <span className="bullet-dot">•</span>
+                      <input
+                        type="text"
+                        className="apple-input bullet-input"
+                        placeholder="Achieved sub-10ms response latency..."
+                        value={h}
+                        onChange={(e) => updateProjectHighlight(i, hi, e.target.value)}
+                      />
+                      <button type="button" className="btn-remove-bullet" onClick={() => removeProjectHighlight(i, hi)}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="btn-apple-secondary btn-add-bullet" onClick={() => addProjectHighlight(i)}>
+                    + Add Highlight Bullet
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="btn-apple-secondary btn-add-section" onClick={addProject}>
+              + Add Key Project
+            </button>
+          </div>
+        </div>
+
+        {/* Section 6: Education */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">🎓</span>
+            <h3>Education</h3>
+          </div>
+
+          <div className="repeatable-stack">
+            {(profile.education || []).map((edu, i) => (
+              <div key={i} className="repeatable-card-item">
+                <div className="item-header">
+                  <span className="item-badge">Education #{i + 1}</span>
+                  <button type="button" className="btn-remove-item" onClick={() => removeEducation(i)}>
+                    🗑 Remove Education
+                  </button>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="apple-input-group">
+                    <label className="apple-label">Degree</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Bachelor of Science"
+                      value={edu.degree || ''}
+                      onChange={(e) => updateEducation(i, 'degree', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="apple-input-group">
+                    <label className="apple-label">Field of Study</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Computer Science"
+                      value={edu.field || ''}
+                      onChange={(e) => updateEducation(i, 'field', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="apple-input-group">
+                    <label className="apple-label">Institution</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Stanford University"
+                      value={edu.institution || ''}
+                      onChange={(e) => updateEducation(i, 'institution', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="apple-input-group">
+                    <label className="apple-label">Graduation Year</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="2023"
+                      value={edu.year || ''}
+                      onChange={(e) => updateEducation(i, 'year', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="apple-input-group">
+                    <label className="apple-label">GPA (Optional)</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="3.9 / 4.0"
+                      value={edu.gpa || ''}
+                      onChange={(e) => updateEducation(i, 'gpa', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="apple-input-group margin-top-sm">
+                  <label className="apple-label">Relevant Coursework</label>
+                  <div className="tag-input-row">
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Operating Systems, Algorithms"
+                      value={courseworkInput}
+                      onChange={(e) => setCourseworkInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addCoursework(i);
+                        }
+                      }}
+                    />
+                    <button type="button" className="btn-apple-secondary btn-input-action" onClick={() => addCoursework(i)}>
+                      Add Course
+                    </button>
+                  </div>
+                  <div className="tags-flex-container">
+                    {(edu.coursework || []).map((c, ci) => (
+                      <span key={ci} className="apple-pill-tag tag-course">
+                        {c}
+                        <button type="button" className="tag-remove-btn" onClick={() => removeCoursework(i, c)}>
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="btn-apple-secondary btn-add-section" onClick={addEducation}>
+              + Add Education
+            </button>
+          </div>
+        </div>
+
+        {/* Section 7: Achievements */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">🏆</span>
+            <h3>Achievements & Honors</h3>
+          </div>
+
+          <div className="apple-input-group">
+            <label className="apple-label">Add Key Achievement</label>
+            <div className="tag-input-row">
+              <input
+                type="text"
+                className="apple-input"
+                placeholder="e.g. Winner of National Cloud Hackathon 2023"
+                value={achievementInput}
+                onChange={(e) => setAchievementInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addAchievement();
+                  }
+                }}
+              />
+              <button type="button" className="btn-apple-secondary btn-input-action" onClick={addAchievement}>
+                Add Achievement
+              </button>
             </div>
             <div className="achievements-list">
-              {profile.achievements.map((a, i) => (
-                <div key={i} className="achievement-item">
-                  <span className="achievement-icon">🏆</span>
+              {(profile.achievements || []).map((a, i) => (
+                <div key={i} className="achievement-row">
+                  <span className="achievement-bullet">🏆</span>
                   <span className="achievement-text">{a}</span>
-                  <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => removeAchievement(i)}>×</button>
+                  <button type="button" className="btn-remove-bullet" onClick={() => removeAchievement(i)}>
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
           </div>
-        </SectionAccordion>
+        </div>
 
-        {/* Submit */}
-        <div className="form-submit-section">
-          <button type="submit" className="btn btn-primary btn-lg">
-            Continue to Job Description →
+        {/* Section 8: Certifications */}
+        <div className="apple-form-card">
+          <div className="card-section-header">
+            <span className="section-icon">🏅</span>
+            <h3>Certifications</h3>
+          </div>
+
+          <div className="repeatable-stack">
+            {(profile.certifications || []).map((cert, i) => (
+              <div key={i} className="form-grid-3 repeatable-card-item">
+                <div className="apple-input-group">
+                  <label className="apple-label">Certification Name</label>
+                  <input
+                    type="text"
+                    className="apple-input"
+                    placeholder="AWS Solutions Architect"
+                    value={cert.name || ''}
+                    onChange={(e) => updateCertification(i, 'name', e.target.value)}
+                  />
+                </div>
+                <div className="apple-input-group">
+                  <label className="apple-label">Issuer</label>
+                  <input
+                    type="text"
+                    className="apple-input"
+                    placeholder="Amazon Web Services"
+                    value={cert.issuer || ''}
+                    onChange={(e) => updateCertification(i, 'issuer', e.target.value)}
+                  />
+                </div>
+                <div className="apple-input-group">
+                  <label className="apple-label">Date Issued</label>
+                  <input
+                    type="text"
+                    className="apple-input"
+                    placeholder="2023"
+                    value={cert.date || ''}
+                    onChange={(e) => updateCertification(i, 'date', e.target.value)}
+                  />
+                </div>
+                <button type="button" className="btn-remove-item span-full" onClick={() => removeCertification(i)}>
+                  🗑 Remove Certification
+                </button>
+              </div>
+            ))}
+
+            <button type="button" className="btn-apple-secondary btn-add-section" onClick={addCertification}>
+              + Add Certification
+            </button>
+          </div>
+        </div>
+
+        {/* Submit Bar */}
+        <div className="form-submit-bar">
+          <button type="submit" className="btn-apple-primary btn-submit-large">
+            Save Profile & Continue to Resume Builder →
           </button>
         </div>
       </form>
 
       <style>{`
-        .profile-form-wrapper {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .profile-header {
-          text-align: center;
-          margin-bottom: var(--space-2xl);
-        }
-
-        .profile-title {
-          font-size: 2rem;
-          font-weight: 800;
-          background: var(--gradient-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin-bottom: var(--space-sm);
-        }
-
-        .profile-subtitle {
-          color: var(--text-secondary);
-          font-size: 1.0625rem;
-          margin-bottom: var(--space-lg);
-        }
-
-        .profile-actions {
+        .apple-profile-form-container {
           display: flex;
-          gap: var(--space-sm);
-          justify-content: center;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 24px;
         }
 
-        .json-import-panel {
-          margin-bottom: var(--space-xl);
+        .profile-dropzone-card {
+          margin-bottom: 8px;
         }
 
-        .json-import-panel h3 {
-          margin-bottom: var(--space-md);
-          font-weight: 600;
-        }
-
-        .json-import-actions {
-          display: flex;
-          gap: var(--space-sm);
-          margin-top: var(--space-md);
-        }
-
-        .accordion-section {
-          margin-bottom: var(--space-md);
-          overflow: hidden;
-        }
-
-        .accordion-header {
-          width: 100%;
+        .dropzone-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: var(--space-md) var(--space-lg);
+          gap: 16px;
+        }
+
+        .dropzone-title-area {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .dropzone-subtitle-header {
+          font-size: 14px;
+          color: var(--color-body-muted);
+          margin-top: 2px;
+        }
+
+        .dropzone-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .profile-dropzone {
+          border: 2px dashed var(--color-hairline);
+          border-radius: var(--radius-md);
+          padding: 28px 20px;
+          text-align: center;
+          background-color: var(--color-surface-tile-2);
+          transition: border-color 0.2s ease, background 0.2s ease;
+          position: relative;
+        }
+
+        .profile-dropzone.drag-over {
+          border-color: var(--color-primary-on-dark);
+          background: rgba(0, 102, 204, 0.1);
+        }
+
+        .file-input-hidden {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          left: 0;
+          opacity: 0;
+          cursor: pointer;
+        }
+
+        .dropzone-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .upload-icon-circle {
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: rgba(0, 102, 204, 0.15);
+          color: var(--color-primary-on-dark);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .dropzone-main-text {
+          font-size: 17px;
+          font-weight: 600;
+          letter-spacing: -0.374px;
+          color: var(--color-ink);
+        }
+
+        .dropzone-hint-text {
+          font-size: 14px;
+          color: var(--color-body-muted);
+        }
+
+        .btn-browse-files {
+          margin-top: 6px;
+          padding: 8px 20px !important;
+          font-size: 14px !important;
+        }
+
+        .parse-status-banner {
+          background: rgba(0, 102, 204, 0.15);
+          color: var(--color-primary-on-dark);
+          padding: 10px 14px;
+          border-radius: var(--radius-sm);
+          font-size: 14px;
+          margin-top: 14px;
+          text-align: center;
+        }
+
+        .parse-error-banner {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          padding: 10px 14px;
+          border-radius: var(--radius-sm);
+          font-size: 14px;
+          margin-top: 14px;
+          text-align: center;
+        }
+
+        .btn-apple-chip {
+          background-color: var(--color-surface-tile-2);
+          border: 1px solid var(--color-hairline);
+          color: var(--color-ink);
+          border-radius: var(--radius-sm);
+          padding: 8px 14px;
+          font-size: 13px;
+          cursor: pointer;
+          transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .btn-apple-chip:hover {
+          border-color: var(--color-primary-on-dark);
+          color: var(--color-primary-on-dark);
+        }
+
+        .btn-apple-chip:active {
+          transform: scale(0.95);
+        }
+
+        .json-panel {
+          padding: 20px;
+        }
+
+        .json-panel-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .btn-sm {
+          padding: 8px 16px !important;
+          font-size: 14px !important;
+        }
+
+        .json-error-pill {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          padding: 6px 12px;
+          border-radius: var(--radius-sm);
+          font-size: 13px;
+          margin-top: 8px;
+        }
+
+        .apple-form-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .apple-form-card {
+          background-color: var(--color-surface-tile-1);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-lg);
+          padding: 28px;
+          box-shadow: none;
+        }
+
+        .card-section-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--color-hairline);
+          padding-bottom: 12px;
+        }
+
+        .section-icon {
+          font-size: 22px;
+        }
+
+        .card-section-header h3 {
+          font-size: 21px;
+          font-weight: 600;
+          letter-spacing: -0.28px;
+          color: var(--color-ink);
+        }
+
+        .form-grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+
+        .form-grid-2 {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+        }
+
+        .form-grid-2-inner {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        @media (max-width: 800px) {
+          .form-grid-3, .form-grid-2, .form-grid-2-inner {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .span-2 {
+          grid-column: span 2;
+        }
+
+        .span-full {
+          grid-column: 1 / -1;
+        }
+
+        .apple-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .margin-top-sm {
+          margin-top: 14px;
+        }
+
+        .margin-bottom-lg {
+          margin-bottom: 24px;
+        }
+
+        .apple-label {
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: -0.224px;
+          color: var(--color-body-muted);
+        }
+
+        .apple-input {
+          width: 100%;
+          height: 44px;
+          padding: 0 14px;
+          background-color: var(--color-input-bg);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-sm);
+          color: var(--color-ink);
+          font-family: var(--font-text);
+          font-size: 15px;
+          letter-spacing: -0.374px;
+          transition: border-color 0.15s ease;
+        }
+
+        .apple-input:focus {
+          outline: 2px solid var(--color-primary-focus);
+          border-color: transparent;
+        }
+
+        .apple-textarea {
+          width: 100%;
+          padding: 12px 14px;
+          background-color: var(--color-input-bg);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-sm);
+          color: var(--color-ink);
+          font-family: var(--font-text);
+          font-size: 15px;
+          line-height: 1.47;
+          resize: vertical;
+        }
+
+        .apple-textarea:focus {
+          outline: 2px solid var(--color-primary-focus);
+          border-color: transparent;
+        }
+
+        .tag-input-row {
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-input-action {
+          padding: 0 16px !important;
+          height: 44px;
+          font-size: 14px !important;
+          flex-shrink: 0;
+        }
+
+        .tags-flex-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .apple-pill-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: var(--radius-pill);
+          background-color: rgba(0, 102, 204, 0.15);
+          color: var(--color-primary-on-dark);
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        .tag-tech {
+          background-color: rgba(16, 185, 129, 0.15);
+          color: #10b981;
+        }
+
+        .tag-course {
+          background-color: rgba(245, 158, 11, 0.15);
+          color: #f59e0b;
+        }
+
+        .tag-remove-btn {
           background: none;
           border: none;
+          color: inherit;
+          font-size: 16px;
           cursor: pointer;
-          font-family: var(--font-body);
-          color: var(--text-primary);
-          font-size: 1rem;
-          font-weight: 600;
-          transition: background var(--transition-fast);
-          margin: calc(-1 * var(--space-lg));
-          margin-bottom: 0;
-          width: calc(100% + 2 * var(--space-lg));
+          padding: 0 2px;
         }
 
-        .accordion-header:hover {
-          background: rgba(255, 255, 255, 0.03);
-        }
-
-        .accordion-title {
+        .repeatable-stack {
           display: flex;
-          align-items: center;
-          gap: var(--space-sm);
+          flex-direction: column;
+          gap: 16px;
         }
 
-        .accordion-icon {
-          font-size: 1.125rem;
-        }
-
-        .accordion-count {
-          background: var(--color-primary);
-          color: white;
-          font-size: 0.6875rem;
-          font-weight: 700;
-          padding: 0.125rem 0.5rem;
-          border-radius: var(--radius-full);
-        }
-
-        .accordion-chevron {
-          font-size: 1.25rem;
-          transition: transform var(--transition-base);
-          color: var(--text-tertiary);
-        }
-
-        .accordion-chevron.open {
-          transform: rotate(180deg);
-        }
-
-        .accordion-body {
-          padding-top: var(--space-lg);
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: var(--space-md);
-        }
-
-        .tag-input-wrapper {
-          display: flex;
-          gap: var(--space-sm);
-          margin-bottom: var(--space-sm);
-        }
-
-        .tag-input-wrapper .form-input {
-          flex: 1;
-        }
-
-        .tags-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--space-sm);
-          min-height: 1rem;
-        }
-
-        .repeatable-item {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid var(--border-glass);
+        .repeatable-card-item {
+          background-color: var(--color-surface-tile-2);
+          border: 1px solid var(--color-hairline);
           border-radius: var(--radius-md);
-          padding: var(--space-lg);
-          margin-bottom: var(--space-md);
+          padding: 20px;
         }
 
-        .repeatable-header {
+        .item-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: var(--space-md);
+          margin-bottom: 16px;
         }
 
-        .repeatable-number {
-          font-size: 0.8125rem;
+        .item-badge {
+          font-size: 13px;
           font-weight: 600;
-          color: var(--color-primary-light);
+          color: var(--color-primary-on-dark);
         }
 
-        .bullet-row {
+        .btn-remove-item {
+          background: none;
+          border: 1px solid var(--color-hairline);
+          color: #ef4444;
+          padding: 4px 10px;
+          border-radius: var(--radius-sm);
+          font-size: 12px;
+          cursor: pointer;
+          transition: transform 0.15s ease;
+        }
+
+        .btn-remove-item:active {
+          transform: scale(0.95);
+        }
+
+        .bullets-section {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 14px;
+        }
+
+        .bullet-input-row {
           display: flex;
           align-items: center;
-          gap: var(--space-sm);
-          margin-bottom: var(--space-sm);
+          gap: 8px;
         }
 
         .bullet-dot {
-          color: var(--color-primary-light);
-          font-size: 1.25rem;
+          color: var(--color-primary-on-dark);
+          font-size: 18px;
           flex-shrink: 0;
         }
 
@@ -787,36 +1388,70 @@ export default function ProfileForm({ initialProfile, onSubmit }) {
           flex: 1;
         }
 
-        .achievements-list {
-          margin-top: var(--space-md);
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-sm);
+        .btn-remove-bullet {
+          background: none;
+          border: none;
+          color: var(--color-body-muted);
+          font-size: 16px;
+          cursor: pointer;
+          padding: 4px;
         }
 
-        .achievement-item {
+        .btn-remove-bullet:hover {
+          color: #ef4444;
+        }
+
+        .btn-add-bullet, .btn-add-section {
+          align-self: flex-start;
+          padding: 8px 16px !important;
+          font-size: 14px !important;
+          margin-top: 6px;
+        }
+
+        .btn-add-section {
+          width: 100%;
+          justify-content: center;
+          display: flex;
+        }
+
+        .achievements-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .achievement-row {
           display: flex;
           align-items: center;
-          gap: var(--space-sm);
-          padding: var(--space-sm) var(--space-md);
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: var(--radius-md);
+          gap: 10px;
+          padding: 10px 14px;
+          background-color: var(--color-surface-tile-2);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-sm);
         }
 
         .achievement-text {
           flex: 1;
-          font-size: 0.9375rem;
+          font-size: 14px;
+          color: var(--color-ink);
         }
 
-        .form-submit-section {
+        .form-submit-bar {
           text-align: center;
-          margin-top: var(--space-2xl);
+          margin-top: 16px;
         }
 
-        @media (max-width: 640px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
+        .btn-submit-large {
+          width: 100%;
+          max-width: 480px;
+          padding: 14px 28px;
+          font-size: 18px;
+          font-weight: 400;
+          border-radius: var(--radius-pill);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
       `}</style>
     </div>

@@ -1,0 +1,8 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import ProfileApp from '../../components/app/pages/ProfileApp.jsx';
+---
+
+<AppLayout title="Profile & Account — ResumeBuilder">
+  <ProfileApp client:only="react" />
+</AppLayout>

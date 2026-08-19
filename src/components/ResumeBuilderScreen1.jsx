@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import defaultProfile from '../assets/profile.json';
+import ProfileForm from './ProfileForm.jsx';
 
 /**
- * Screen 1: Resume Builder Input Page (Dark Theme + Gemini 2.5 Flash API)
+ * Screen 1: Resume Builder Input Page (Dark Theme + Gemini 3.6 Flash API)
  * Takes Job Description and queries Gemini API directly using key from .env file.
  */
 export default function ResumeBuilderScreen1({
@@ -14,9 +15,16 @@ export default function ResumeBuilderScreen1({
   isLoading,
   loadingStatus,
   error,
+  autoOpenEditModal = false,
 }) {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(autoOpenEditModal);
   const [editFormData, setEditFormData] = useState(profile || defaultProfile);
+
+  useEffect(() => {
+    if (autoOpenEditModal) {
+      setIsEditModalOpen(true);
+    }
+  }, [autoOpenEditModal]);
 
   const sampleJd = `Senior Full Stack Engineer — TechCorp Innovations (Fintech & Cloud Platforms)
 
@@ -239,9 +247,9 @@ Requirements & Qualifications:
       {/* EDIT DETAILS MODAL */}
       {isEditModalOpen && (
         <div className="apple-modal-overlay">
-          <div className="apple-modal-content animate-fade-in">
+          <div className="apple-modal-content profile-form-modal animate-fade-in">
             <div className="modal-header">
-              <h2 className="display-md">Edit Profile Details</h2>
+              <h2 className="display-md">Candidate Profile Details</h2>
               <button
                 type="button"
                 className="modal-close-btn"
@@ -251,100 +259,35 @@ Requirements & Qualifications:
               </button>
             </div>
 
-            <form onSubmit={handleSaveModal} className="modal-form">
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.name || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Title</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.title || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="apple-input"
-                    value={editFormData.email || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Phone</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.phone || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">LinkedIn</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.linkedin || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, linkedin: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">GitHub</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.github || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, github: e.target.value })}
-                  />
-                </div>
-                <div className="form-group span-2">
-                  <label className="form-label">Portfolio</label>
-                  <input
-                    type="text"
-                    className="apple-input"
-                    value={editFormData.portfolio || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, portfolio: e.target.value })}
-                  />
-                </div>
-                <div className="form-group span-2">
-                  <label className="form-label">Summary</label>
-                  <textarea
-                    className="apple-textarea"
-                    rows={3}
-                    value={editFormData.summary || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, summary: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-apple-utility"
-                  onClick={() => setIsEditModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-apple-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
+            <div className="modal-body-scroll">
+              <ProfileForm
+                initialProfile={profile}
+                onSubmit={(updatedProf) => {
+                  onUpdateProfile(updatedProf);
+                  setIsEditModalOpen(false);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
 
       <style>{`
+        .profile-form-modal {
+          max-width: 900px !important;
+          width: 92% !important;
+          max-height: 90vh !important;
+          display: flex;
+          flex-direction: column;
+          padding: 24px;
+        }
+
+        .modal-body-scroll {
+          overflow-y: auto;
+          padding-right: 8px;
+          max-height: calc(90vh - 80px);
+        }
+
         .screen-1-container {
           max-width: 1100px;
           margin: 32px auto;

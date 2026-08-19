@@ -1,83 +1,72 @@
 /* ╔══════════════════════════════════════════════════════════════╗
-   ║  Apple Design System — Dark Theme                            ║
-   ║  Reference: DESIGN-apple.md (Dark Surfaces & Blue Accents)   ║
+   ║  Apple Design System — Pitch Black & Deep Dark Gray Dark Mode║
+   ║  Strictly complying with DESIGN-apple.md tokens              ║
    ╚══════════════════════════════════════════════════════════════╝ */
 
-/* ── Typography & Dark Theme Color Tokens ───────────────────────── */
-:root {
+:root, [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Colors from DESIGN-apple.md Dark Mode */
-  --color-primary: #0071e3;          /* Apple Action Blue */
-  --color-primary-focus: #2997ff;    /* Focus / Sky Link Blue */
-  --color-primary-on-dark: #2997ff;  /* Sky Link Blue */
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  --color-primary-on-dark: #2997ff;
 
-  --color-ink: #f5f5f7;              /* White ink on dark */
+  --color-ink: #f5f5f7;
   --color-body: #f5f5f7;
-  --color-body-muted: #98989d;
-  --color-ink-muted-80: #e0e0e0;
-  --color-ink-muted-48: #86868b;
+  --color-body-muted: #8e8e93;
 
-  --color-canvas: #1c1c22;           /* Dark Card Canvas */
-  --color-canvas-parchment: #0d0d12; /* Deep Apple Dark Parchment */
-  --color-surface-pearl: #24242c;
-  --color-surface-tile-1: #16161a;
-  --color-surface-tile-2: #222228;
-  
+  --color-canvas: #1c1c1e;
+  --color-canvas-parchment: #000000; /* Pitch Black Canvas */
+  --color-surface-tile-1: #1c1c1e; /* Deep Dark Gray Tile 1 */
+  --color-surface-tile-2: #242426; /* Micro-step Dark Gray Tile 2 */
+  --color-surface-tile-3: #141416; /* Deep Void Dark Gray Tile 3 */
+  --color-surface-pearl: #1c1c1e;
+  --color-surface-black: #000000; /* Pitch Black */
+
   --color-hairline: rgba(255, 255, 255, 0.12);
   --color-divider-soft: rgba(255, 255, 255, 0.08);
 
-  /* Status Colors */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-nav-bg: rgba(0, 0, 0, 0.88); /* Pitch Black Frosted Nav */
+  --color-input-bg: #121214; /* Deep Dark Input Fill */
 
-  /* Typography Stacks */
   --font-display: "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Radii */
-  --radius-none: 0px;
   --radius-xs: 5px;
   --radius-sm: 8px;
   --radius-md: 11px;
   --radius-lg: 18px;
   --radius-pill: 9999px;
-  --radius-full: 9999px;
-
-  /* Shadows — Single signature product drop-shadow per DESIGN-apple.md */
-  --shadow-product: 0 10px 40px rgba(0, 0, 0, 0.5);
-  --shadow-product-hover: 0 16px 50px rgba(0, 0, 0, 0.65);
-
-  /* Spacing */
-  --space-xxs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 17px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-xxl: 48px;
-  --space-section: 80px;
-
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Reset & Base ───────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  --color-primary-on-dark: #0066cc;
+
+  --color-ink: #1d1d1f;
+  --color-body: #1d1d1f;
+  --color-body-muted: #7a7a7a;
+
+  --color-canvas: #ffffff;
+  --color-canvas-parchment: #f5f5f7;
+  --color-surface-tile-1: #ffffff;
+  --color-surface-tile-2: #f5f5f7;
+  --color-surface-tile-3: #e8e8ed;
+  --color-surface-pearl: #fafafc;
+
+  --color-hairline: #e0e0e0;
+  --color-divider-soft: #f0f0f0;
+
+  --color-nav-bg: rgba(255, 255, 255, 0.85);
+  --color-input-bg: #ffffff;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-canvas-parchment);
-  color: var(--color-ink);
 }
 
 body {
@@ -86,154 +75,51 @@ body {
   line-height: 1.47;
   letter-spacing: -0.374px;
   color: var(--color-body);
-  background: var(--color-canvas-parchment);
+  background-color: var(--color-canvas-parchment);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Typography Classes ─────────────────────────────────────────── */
-.hero-display {
+/* Typography Hierarchy */
+h1, h2, h3, h4, .hero-display, .display-lg, .display-md {
   font-family: var(--font-display);
-  font-size: 48px;
   font-weight: 600;
+  color: var(--color-ink);
+}
+
+h1, .hero-display {
+  font-size: 56px;
   line-height: 1.07;
-  letter-spacing: -0.02em;
-  color: var(--color-ink);
+  letter-spacing: -0.28px;
 }
 
-.display-lg {
-  font-family: var(--font-display);
-  font-size: 34px;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
-  color: var(--color-ink);
+h2, .display-lg {
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.374px;
 }
 
-.display-md {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  color: var(--color-ink);
+h3, .display-md {
+  font-size: 28px;
+  line-height: 1.14;
+  letter-spacing: -0.374px;
 }
 
-.tagline {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.19;
-  letter-spacing: 0.01em;
-}
-
-.body-lead {
-  font-family: var(--font-text);
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  color: var(--color-body-muted);
-}
-
-/* ── Buttons (Apple Signature Specs - Dark Theme) ───────────────── */
-.btn-apple-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--color-primary);
-  color: #ffffff;
-  font-family: var(--font-text);
-  font-size: 17px;
-  font-weight: 400;
-  border-radius: var(--radius-pill);
-  padding: 11px 24px;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color var(--transition-fast), transform var(--transition-fast);
-  white-space: nowrap;
-}
-
-.btn-apple-primary:hover {
-  background-color: var(--color-primary-focus);
-}
-
-.btn-apple-primary:active {
-  transform: scale(0.95); /* Apple Micro-interaction */
-}
-
-.btn-apple-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--color-canvas);
-  color: var(--color-primary-on-dark);
-  font-family: var(--font-text);
-  font-size: 17px;
-  font-weight: 400;
-  border-radius: var(--radius-pill);
-  padding: 10px 22px;
-  border: 1px solid var(--color-primary-on-dark);
-  cursor: pointer;
-  text-decoration: none;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.btn-apple-secondary:hover {
-  background-color: var(--color-surface-pearl);
-}
-
-.btn-apple-secondary:active {
-  transform: scale(0.95);
-}
-
-.btn-apple-utility {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background-color: var(--color-surface-pearl);
-  color: var(--color-ink);
-  font-family: var(--font-text);
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
-  border: 1px solid var(--color-hairline);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-apple-utility:hover {
-  background-color: #2e2e38;
-  border-color: var(--color-primary-on-dark);
-  color: var(--color-primary-on-dark);
-}
-
-.btn-apple-utility:active {
-  transform: scale(0.95);
-}
-
-/* ── Apple Nav Header ───────────────────────────────────────────── */
+/* Apple Navigation Bar - Pitch Black Frosted */
 .apple-nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: rgba(13, 13, 18, 0.85);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--color-nav-bg);
   border-bottom: 1px solid var(--color-hairline);
-  height: 52px;
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
+  padding: 12px 24px;
 }
 
 .apple-nav-inner {
   max-width: 1200px;
-  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -243,232 +129,156 @@ body {
 .apple-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--color-ink);
+  gap: 8px;
   font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
-  text-decoration: none;
-  letter-spacing: -0.01em;
-}
-
-/* ── Container Cards ────────────────────────────────────────────── */
-.apple-card {
-  background-color: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-}
-
-/* ── Form Controls ──────────────────────────────────────────────── */
-.apple-textarea {
-  width: 100%;
-  background-color: #121217;
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  font-family: var(--font-text);
-  font-size: 16px;
-  line-height: 1.5;
+  letter-spacing: -0.28px;
   color: var(--color-ink);
-  outline: none;
-  resize: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  text-decoration: none;
 }
 
-.apple-textarea:focus {
-  border-color: var(--color-primary-on-dark);
-  background-color: #16161c;
-  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2);
+.apple-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.apple-input {
-  width: 100%;
-  background-color: #121217;
+/* Buttons - Apple Action Blue Grammars */
+.btn-apple-primary, .btn-apple-pill {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  box-shadow: none;
+}
+
+.btn-apple-primary:hover, .btn-apple-pill:hover {
+  background-color: var(--color-primary-focus);
+}
+
+.btn-apple-primary:active, .btn-apple-pill:active {
+  transform: scale(0.95);
+}
+
+.btn-apple-secondary {
+  background-color: transparent;
+  color: var(--color-primary-on-dark);
+  border: 1px solid var(--color-primary-on-dark);
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-apple-secondary:hover {
+  background-color: rgba(41, 151, 255, 0.1);
+}
+
+.btn-apple-secondary:active {
+  transform: scale(0.95);
+}
+
+.btn-apple-dark-utility {
+  background-color: var(--color-surface-tile-2);
+  color: var(--color-ink);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-family: var(--font-text);
-  font-size: 15px;
-  color: var(--color-ink);
-  outline: none;
-  transition: all var(--transition-fast);
+  padding: 8px 15px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
-.apple-input:focus {
-  border-color: var(--color-primary-on-dark);
-  background-color: #16161c;
-  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2);
+.btn-apple-dark-utility:active {
+  transform: scale(0.95);
 }
 
-/* ── Tags & Badges ──────────────────────────────────────────────── */
-.apple-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 500;
-  background-color: var(--color-surface-pearl);
-  color: var(--color-ink);
+.btn-theme-toggle {
+  background: var(--color-surface-tile-2);
   border: 1px solid var(--color-hairline);
-}
-
-.apple-tag-primary {
-  background-color: rgba(41, 151, 255, 0.12);
-  color: var(--color-primary-on-dark);
-  border-color: rgba(41, 151, 255, 0.25);
-}
-
-/* ── Resume Sheet (Document Surface) ────────────────────────────── */
-.apple-resume-sheet {
-  background-color: #ffffff;
-  color: #1d1d1f;
-  padding: 48px 56px;
-  border-radius: 6px;
-  box-shadow: var(--shadow-product); /* Exactly one product shadow */
-  font-family: var(--font-text);
-  line-height: 1.5;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
-}
-
-.apple-resume-sheet:hover {
-  box-shadow: var(--shadow-product-hover);
-}
-
-.sheet-contact-line {
+  color: var(--color-ink);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  gap: 6px 10px;
-  font-size: 0.875rem;
-  color: #374151;
-  margin-top: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
-.contact-chunk {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+.btn-theme-toggle:active {
+  transform: scale(0.95);
 }
 
-.contact-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.contact-icon {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  color: #4b5563;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.contact-separator {
-  color: #d1d5db;
-  font-size: 0.8125rem;
+/* Store Utility Card — Pitch Black / Deep Dark Gray */
+.apple-card {
+  background-color: var(--color-surface-tile-1);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg); /* 18px */
+  padding: 24px;
+  box-shadow: none;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 /* Modal Overlay */
 .apple-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 200;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
 }
 
 .apple-modal-content {
-  background-color: var(--color-canvas);
+  background: var(--color-surface-tile-1);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
-  max-width: 720px;
+  color: var(--color-ink);
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: none;
 }
 
-/* Micro Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-body-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* ── Print Media Styles for PDF & Browser Print Fallback ────────────── */
-@media print {
-  @page {
-    margin: 0;
-    size: auto;
-  }
-
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .apple-resume-sheet,
-  .apple-resume-sheet *,
-  .resume-preview,
-  .resume-preview *,
-  .print-preview-container,
-  .print-preview-container *,
-  .a4-print-page,
-  .a4-print-page * {
-    visibility: visible;
-  }
-
-  .apple-resume-sheet,
-  .resume-preview {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 36px 48px !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    color: #1d1d1f !important;
-  }
-
-  .apple-nav,
-  .screen-2-right-panel,
-  .screen-2-header-nav,
-  .matched-keywords-footer,
-  .preview-actions,
-  button {
-    display: none !important;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
-
-

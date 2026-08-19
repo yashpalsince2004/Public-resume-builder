@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import BuilderApp from '../components/BuilderApp.jsx';
+import LandingPage from '../components/LandingPage.jsx';
 ---
 
-<Layout title="Resume Builder — Apple Design ATS Resume Engine" description="Create an ATS-optimized resume tailored to any job description. 100% client-side, Apple Design System, pre-loaded user profile.">
-  <BuilderApp client:load initialStep={0} />
+<Layout title="Public Resume Builder — Landing Page" description="Create an ATS-optimized resume tailored to any job description. Upload your previous resume or start fresh with Firebase cloud sync.">
+  <LandingPage client:load />
 </Layout>

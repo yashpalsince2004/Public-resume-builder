@@ -22,3 +22,15 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# public app repository folder
+Public_Resume_Builder_App/
+
+# python / venv / cache
+venv/
+__pycache__/
+.pytest_cache/
+.benchmarks/
+*.pyc
+
+

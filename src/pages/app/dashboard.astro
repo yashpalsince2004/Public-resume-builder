@@ -1,0 +1,8 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import DashboardApp from '../../components/app/pages/DashboardApp.jsx';
+---
+
+<AppLayout title="Dashboard — ResumeBuilder">
+  <DashboardApp client:only="react" />
+</AppLayout>

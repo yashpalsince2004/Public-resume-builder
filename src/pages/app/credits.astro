@@ -1,0 +1,8 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import CreditsApp from '../../components/app/pages/CreditsApp.jsx';
+---
+
+<AppLayout title="Plans & Credits — ResumeBuilder">
+  <CreditsApp client:only="react" />
+</AppLayout>

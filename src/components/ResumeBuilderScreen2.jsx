@@ -1078,7 +1078,7 @@ export default function ResumeBuilderScreen2({
           font-weight: 500;
           padding: 4px 12px;
           border-radius: var(--radius-pill);
-          background-color: #16161c;
+          background-color: var(--color-surface-tile-2);
           border: 1px solid var(--color-hairline);
           color: var(--color-ink);
           cursor: pointer;
@@ -1087,7 +1087,7 @@ export default function ResumeBuilderScreen2({
         }
 
         .version-tab-btn.active {
-          background-color: rgba(41, 151, 255, 0.18);
+          background-color: rgba(0, 102, 204, 0.18);
           color: var(--color-primary-on-dark);
           border-color: var(--color-primary-on-dark);
           font-weight: 600;
@@ -1100,7 +1100,7 @@ export default function ResumeBuilderScreen2({
         }
 
         .btn-version-arrow {
-          background: #181820;
+          background: var(--color-surface-tile-2);
           border: 1px solid var(--color-hairline);
           color: var(--color-ink);
           font-size: 12px;
@@ -1111,7 +1111,7 @@ export default function ResumeBuilderScreen2({
         }
 
         .btn-version-arrow:hover:not(:disabled) {
-          background-color: #2a2a34;
+          background-color: var(--color-surface-tile-1);
           color: var(--color-primary-on-dark);
         }
 
@@ -1684,7 +1684,7 @@ export default function ResumeBuilderScreen2({
 
         .bar-track {
           height: 6px;
-          background-color: #121217;
+          background-color: var(--color-input-bg);
           border-radius: var(--radius-pill);
           overflow: hidden;
         }

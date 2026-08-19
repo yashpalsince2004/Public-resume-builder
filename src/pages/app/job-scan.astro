@@ -1,0 +1,8 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import JobScanApp from '../../components/app/pages/JobScanApp.jsx';
+---
+
+<AppLayout title="Job Scan — ResumeBuilder">
+  <JobScanApp client:only="react" />
+</AppLayout>
